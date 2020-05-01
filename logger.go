@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	maxLines = 1024
+	maxLines = 128
 )
 
 var log = logging.MustGetLogger("gktui")
@@ -82,7 +82,7 @@ func (w *Logger) append_text(text string) error {
 		return err
 	}
 	logLock.Lock()
-	if cnt := buffer.GetLineCount(); cnt > maxLines {
+	if cnt := buffer.GetLineCount(); cnt > maxLines+16 {
 		// delete lines after maxLines
 		bi := buffer.GetIterAtLine(0)
 		ei := buffer.GetIterAtLine(cnt - maxLines)
@@ -90,13 +90,14 @@ func (w *Logger) append_text(text string) error {
 	}
 	si := buffer.GetEndIter()
 	buffer.Insert(si, text)
+	si = buffer.GetEndIter()
 	mk := buffer.CreateMark("lastLine", si, false)
 	w.tv.ScrollMarkOnscreen(mk)
 	buffer.DeleteMark(mk)
-	logLock.Unlock()
 	for gtk.EventsPending() {
 		gtk.MainIteration()
 	}
+	logLock.Unlock()
 	return nil
 }
 
