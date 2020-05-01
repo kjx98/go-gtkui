@@ -90,7 +90,7 @@ func NewQuoteView(colTitle []string) (*QuoteView, error) {
 	return &res, nil
 }
 
-func (w *QuoteView) Win() gtk.IWidget {
+func (w *QuoteView) Win() *gtk.TreeView {
 	return w.treeView
 }
 

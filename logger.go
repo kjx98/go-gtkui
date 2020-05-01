@@ -100,7 +100,7 @@ func (w *Logger) append_text(text string) error {
 	return nil
 }
 
-func (w *Logger) Win() gtk.IWidget {
+func (w *Logger) Win() *gtk.ScrolledWindow {
 	return w.sw
 }
 
