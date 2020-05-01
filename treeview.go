@@ -117,7 +117,12 @@ func (w *QuoteView) UpdateRow(row int, v []string) error {
 		nc = len(v)
 	}
 	colIds := make([]int, nc)
-	if err := w.listStore.Set(w.rowsIter[row], colIds, v); err != nil {
+	vv := make([]interface{}, nc)
+	for idx := 0; idx < nc; idx++ {
+		colIds[idx] = idx
+		vv[idx] = v[idx]
+	}
+	if err := w.listStore.Set(w.rowsIter[row], colIds, vv); err != nil {
 		log.Error("Update quote row", err)
 	}
 	return nil
