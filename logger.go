@@ -21,6 +21,7 @@ import (
 	"github.com/gotk3/gotk3/gtk"
 	"github.com/op/go-logging"
 	"os"
+	"sync"
 )
 
 const (
@@ -55,11 +56,14 @@ func NewGtkLogger() (*Logger, error) {
 	return &res, nil
 }
 
+var logLock sync.Mutex
+
 func (w *Logger) prepend_text(text string) error {
 	buffer, err := w.tv.GetBuffer()
 	if err != nil {
 		return err
 	}
+	logLock.Lock()
 	si := buffer.GetIterAtLine(0)
 	buffer.Insert(si, text)
 	if cnt := buffer.GetLineCount(); cnt > maxLines {
@@ -68,6 +72,7 @@ func (w *Logger) prepend_text(text string) error {
 		ei := buffer.GetEndIter()
 		buffer.Delete(bi, ei)
 	}
+	logLock.Unlock()
 	return nil
 }
 
@@ -76,6 +81,7 @@ func (w *Logger) append_text(text string) error {
 	if err != nil {
 		return err
 	}
+	logLock.Lock()
 	if cnt := buffer.GetLineCount(); cnt > maxLines {
 		// delete lines after maxLines
 		bi := buffer.GetIterAtLine(0)
@@ -87,6 +93,7 @@ func (w *Logger) append_text(text string) error {
 	mk := buffer.CreateMark("lastLine", si, false)
 	w.tv.ScrollMarkOnscreen(mk)
 	buffer.DeleteMark(mk)
+	logLock.Unlock()
 	for gtk.EventsPending() {
 		gtk.MainIteration()
 	}

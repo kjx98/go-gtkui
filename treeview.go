@@ -18,14 +18,21 @@
 package gtkui
 
 import (
+	"errors"
+
 	"github.com/gotk3/gotk3/glib"
 	"github.com/gotk3/gotk3/gtk"
+)
+
+var (
+	errNoSymbol = errors.New("No quote for symbol")
 )
 
 type QuoteView struct {
 	treeView  *gtk.TreeView
 	listStore *gtk.ListStore
 	nRows     int
+	nCols     int
 	cols      []int // Column ID slice
 	rowsIter  []*gtk.TreeIter
 }
@@ -67,6 +74,7 @@ func NewQuoteView(colTitle []string) (*QuoteView, error) {
 				types = append(types, glib.TYPE_STRING)
 			}
 		}
+		res.nCols = len(colTitle)
 	}
 
 	// Creating a list store. This is what holds the data that will be shown on our tree view.
@@ -93,9 +101,24 @@ func (w *QuoteView) AddRow(sym string) {
 
 	// Set the contents of the list store row that the iterator represents
 	if err := w.listStore.Set(iter, []int{0}, []interface{}{sym}); err != nil {
-		log.Error("Unable to add row:", err)
+		log.Error("Unable to add row", err)
 	} else {
 		w.nRows++
 		w.rowsIter = append(w.rowsIter, iter)
 	}
+}
+
+func (w *QuoteView) UpdateRow(row int, v []string) error {
+	if row < 0 || row >= w.nRows {
+		return errNoSymbol
+	}
+	nc := w.nCols
+	if nc > len(v) {
+		nc = len(v)
+	}
+	colIds := make([]int, nc)
+	if err := w.listStore.Set(w.rowsIter[row], colIds, v); err != nil {
+		log.Error("Update quote row", err)
+	}
+	return nil
 }
