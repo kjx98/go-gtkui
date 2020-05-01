@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	maxLines = 128
+	maxLines = 512
 )
 
 var log = logging.MustGetLogger("gktui")
@@ -43,6 +43,7 @@ func NewGtkLogger() (*Logger, error) {
 	} else {
 		tv.SetWrapMode(gtk.WRAP_WORD_CHAR)
 		tv.SetEditable(false)
+		tv.SetCursorVisible(false)
 		res.tv = tv
 	}
 	if sw, err := gtk.ScrolledWindowNew(nil, nil); err != nil {
@@ -91,13 +92,11 @@ func (w *Logger) append_text(text string) error {
 	si := buffer.GetEndIter()
 	buffer.Insert(si, text)
 	si = buffer.GetEndIter()
-	mk := buffer.CreateMark("lastLine", si, false)
-	w.tv.ScrollMarkOnscreen(mk)
-	buffer.DeleteMark(mk)
+	w.tv.ScrollToIter(si, 0.0, true, 0.0, 1.0)
+	logLock.Unlock()
 	for gtk.EventsPending() {
 		gtk.MainIteration()
 	}
-	logLock.Unlock()
 	return nil
 }
 
