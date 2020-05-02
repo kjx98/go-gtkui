@@ -121,6 +121,8 @@ func (w *QuoteView) UpdateRow(iter *gtk.TreeIter, v []interface{}) error {
 	nc := w.nCols
 	if nc > len(v) {
 		nc = len(v)
+	} else {
+		v = v[:nc]
 	}
 	colIds := make([]int, nc)
 	for idx := 0; idx < nc; idx++ {
