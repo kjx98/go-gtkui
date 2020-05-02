@@ -59,24 +59,6 @@ func NewGtkLogger() (*Logger, error) {
 
 var logLock sync.Mutex
 
-func (w *Logger) prepend_text(text string) error {
-	buffer, err := w.tv.GetBuffer()
-	if err != nil {
-		return err
-	}
-	logLock.Lock()
-	si := buffer.GetIterAtLine(0)
-	buffer.Insert(si, text)
-	if cnt := buffer.GetLineCount(); cnt > maxLines {
-		// delete lines after maxLines
-		bi := buffer.GetIterAtLine(maxLines)
-		ei := buffer.GetEndIter()
-		buffer.Delete(bi, ei)
-	}
-	logLock.Unlock()
-	return nil
-}
-
 func (w *Logger) append_text(text string) error {
 	buffer, err := w.tv.GetBuffer()
 	if err != nil {
@@ -88,15 +70,18 @@ func (w *Logger) append_text(text string) error {
 		bi := buffer.GetIterAtLine(0)
 		ei := buffer.GetIterAtLine(cnt - maxLines)
 		buffer.Delete(bi, ei)
+		for gtk.EventsPending() {
+			gtk.MainIteration()
+		}
 	}
 	si := buffer.GetEndIter()
 	buffer.Insert(si, text)
 	si = buffer.GetEndIter()
 	w.tv.ScrollToIter(si, 0.0, true, 0.0, 1.0)
-	logLock.Unlock()
 	for gtk.EventsPending() {
 		gtk.MainIteration()
 	}
+	logLock.Unlock()
 	return nil
 }
 

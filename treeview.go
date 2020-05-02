@@ -34,7 +34,6 @@ type QuoteView struct {
 	nRows     int
 	nCols     int
 	cols      []int // Column ID slice
-	rowsIter  []*gtk.TreeIter
 }
 
 // Add a column to the tree view (during the initialization of the tree view)
@@ -107,14 +106,18 @@ func (w *QuoteView) AddRow(sym string) {
 		log.Error("Unable to add row", err)
 	} else {
 		w.nRows++
-		w.rowsIter = append(w.rowsIter, iter)
 	}
 }
 
-func (w *QuoteView) UpdateRow(row int, v []string) error {
-	if row < 0 || row >= w.nRows {
-		return errNoSymbol
-	}
+func (w *QuoteView) FirstRow() (*gtk.TreeIter, bool) {
+	return w.listStore.GetIterFirst()
+}
+
+func (w *QuoteView) NextRow(it *gtk.TreeIter) bool {
+	return w.listStore.IterNext(it)
+}
+
+func (w *QuoteView) UpdateRow(iter *gtk.TreeIter, v []string) error {
 	nc := w.nCols
 	if nc > len(v) {
 		nc = len(v)
@@ -125,7 +128,7 @@ func (w *QuoteView) UpdateRow(row int, v []string) error {
 		colIds[idx] = idx
 		vv[idx] = v[idx]
 	}
-	if err := w.listStore.Set(w.rowsIter[row], colIds, vv); err != nil {
+	if err := w.listStore.Set(iter, colIds, vv); err != nil {
 		log.Error("Update quote row", err)
 	}
 	return nil
