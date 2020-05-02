@@ -117,18 +117,16 @@ func (w *QuoteView) NextRow(it *gtk.TreeIter) bool {
 	return w.listStore.IterNext(it)
 }
 
-func (w *QuoteView) UpdateRow(iter *gtk.TreeIter, v []string) error {
+func (w *QuoteView) UpdateRow(iter *gtk.TreeIter, v []interface{}) error {
 	nc := w.nCols
 	if nc > len(v) {
 		nc = len(v)
 	}
 	colIds := make([]int, nc)
-	vv := make([]interface{}, nc)
 	for idx := 0; idx < nc; idx++ {
 		colIds[idx] = idx
-		vv[idx] = v[idx]
 	}
-	if err := w.listStore.Set(iter, colIds, vv); err != nil {
+	if err := w.listStore.Set(iter, colIds, v); err != nil {
 		log.Error("Update quote row", err)
 	}
 	return nil
