@@ -65,7 +65,7 @@ func NewQuoteView(colTitle []string) (*QuoteView, error) {
 	} else {
 		res.treeView = treeView
 		treeView.SetHeadersClickable(false)
-		treeView.SetActivateOnSingleClick(true)
+		//treeView.SetActivateOnSingleClick(true)
 		treeView.SetEnableSearch(false)
 		for idx, col := range colTitle {
 			if cc, err := createColumn(col, idx); err != nil {

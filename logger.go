@@ -25,10 +25,13 @@ import (
 )
 
 const (
-	maxLines = 512
+	maxLines  = 256
+	maxBuffer = 32768
 )
 
 var log = logging.MustGetLogger("gktui")
+var logLock sync.Mutex
+var logBuf string = ""
 
 type Logger struct {
 	tv *gtk.TextView
@@ -57,31 +60,37 @@ func NewGtkLogger() (*Logger, error) {
 	return &res, nil
 }
 
-var logLock sync.Mutex
+func (w *Logger) prepend_text(text string) error {
+	buffer, err := w.tv.GetBuffer()
+	if err != nil {
+		return err
+	}
+	bi := buffer.GetIterAtLine(0)
+	buffer.Insert(bi, text)
+	if cnt := buffer.GetLineCount(); cnt > maxLines+16 {
+		// delete lines after maxLines
+		bi := buffer.GetIterAtLine(maxLines)
+		ei := buffer.GetEndIter()
+		buffer.Delete(bi, ei)
+	}
+	return nil
+}
 
 func (w *Logger) append_text(text string) error {
 	buffer, err := w.tv.GetBuffer()
 	if err != nil {
 		return err
 	}
-	logLock.Lock()
+	si := buffer.GetEndIter()
+	buffer.Insert(si, text)
 	if cnt := buffer.GetLineCount(); cnt > maxLines+16 {
 		// delete lines after maxLines
 		bi := buffer.GetIterAtLine(0)
 		ei := buffer.GetIterAtLine(cnt - maxLines)
 		buffer.Delete(bi, ei)
-		for gtk.EventsPending() {
-			gtk.MainIteration()
-		}
+		si := buffer.GetEndIter()
+		buffer.Insert(si, "deleted some lines ...\n")
 	}
-	si := buffer.GetEndIter()
-	buffer.Insert(si, text)
-	si = buffer.GetEndIter()
-	w.tv.ScrollToIter(si, 0.0, true, 0.0, 1.0)
-	for gtk.EventsPending() {
-		gtk.MainIteration()
-	}
-	logLock.Unlock()
 	return nil
 }
 
@@ -89,12 +98,36 @@ func (w *Logger) Win() *gtk.ScrolledWindow {
 	return w.sw
 }
 
+func (w *Logger) Flush() {
+	if len(logBuf) == 0 {
+		return
+	}
+	logLock.Lock()
+	w.append_text(logBuf)
+	logBuf = ""
+	logLock.Unlock()
+
+	if buffer, err := w.tv.GetBuffer(); err == nil {
+		si := buffer.GetEndIter()
+		w.tv.ScrollToIter(si, 0.0, true, 0.0, 1.0)
+		for gtk.EventsPending() {
+			gtk.MainIteration()
+		}
+	}
+	//w.tv.QueueDraw()
+	//w.sw.QueueDraw()
+}
+
 func (w *Logger) Write(p []byte) (n int, err error) {
 	n = len(p)
 	//err = w.prepend_text(string(p))
-	err = w.append_text(string(p))
-	//w.tv.QueueDraw()
-	//w.sw.QueueDraw()
+	if len(logBuf) > maxBuffer {
+		// discard log msg
+		return n, nil
+	}
+	logLock.Lock()
+	logBuf += string(p)
+	logLock.Unlock()
 	return
 }
 

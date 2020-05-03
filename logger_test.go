@@ -41,6 +41,7 @@ func TestLogger(t *testing.T) {
 		ss := fmt.Sprintln("log line ", i)
 		logg.Write([]byte(ss))
 	}
+	logg.Flush()
 	go func() {
 		time.Sleep(30 * time.Second)
 		gtk.MainQuit()
