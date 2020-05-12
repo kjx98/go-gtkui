@@ -28,6 +28,19 @@ var (
 	errNoSymbol = errors.New("No quote for symbol")
 )
 
+const (
+	ColorUp       = "red"
+	ColorDown     = "yellow"
+	ColorEq       = "black"
+	colRow    int = 0
+	colColor  int = 1
+	colStart  int = 2
+)
+
+// QuoteView	Quotes display view
+//	column 0	quote idx
+//	column 1	color
+//	column 2... column of quotes
 type QuoteView struct {
 	treeView  *gtk.TreeView
 	listStore *gtk.ListStore
@@ -49,6 +62,7 @@ func createColumn(title string, id int) (*gtk.TreeViewColumn, error) {
 		log.Error("Unable to create cell column:", err)
 		return nil, err
 	}
+	column.AddAttribute(cellRenderer, "foreground", colColor)
 
 	return column, nil
 }
@@ -58,7 +72,7 @@ func createColumn(title string, id int) (*gtk.TreeViewColumn, error) {
 //				column 0 MUST be symbol
 func NewQuoteView(colTitle []string) (*QuoteView, error) {
 	res := QuoteView{}
-	types := []glib.Type{}
+	types := []glib.Type{glib.TYPE_INT, glib.TYPE_STRING}
 	if treeView, err := gtk.TreeViewNew(); err != nil {
 		log.Error("Unable to create tree view:", err)
 		return nil, err
@@ -68,7 +82,7 @@ func NewQuoteView(colTitle []string) (*QuoteView, error) {
 		//treeView.SetActivateOnSingleClick(true)
 		treeView.SetEnableSearch(false)
 		for idx, col := range colTitle {
-			if cc, err := createColumn(col, idx); err != nil {
+			if cc, err := createColumn(col, idx+colStart); err != nil {
 				treeView.Destroy()
 				return nil, err
 			} else {
@@ -102,11 +116,42 @@ func (w *QuoteView) AddRow(sym string) {
 	iter := w.listStore.Append()
 
 	// Set the contents of the list store row that the iterator represents
-	if err := w.listStore.Set(iter, []int{0}, []interface{}{sym}); err != nil {
+	if err := w.listStore.Set(iter, []int{colRow, colColor, colStart},
+		[]interface{}{w.nRows, "black", sym}); err != nil {
 		log.Error("Unable to add row", err)
 	} else {
 		w.nRows++
 	}
+}
+
+func (w *QuoteView) SetRowColor(it *gtk.TreeIter, cc string) {
+	colIds := []int{colColor}
+	v := []interface{}{cc}
+	if err := w.listStore.Set(it, colIds, v); err != nil {
+		log.Error("Update row color", err)
+	}
+}
+
+func (w *QuoteView) RowColor(it *gtk.TreeIter) string {
+	if v, err := w.listStore.GetValue(it, colColor); err != nil {
+		return ""
+	} else if iv, err := v.GoValue(); err != nil {
+		return ""
+	} else if res, ok := iv.(string); ok {
+		return res
+	}
+	return "unknown"
+}
+
+func (w *QuoteView) RowId(it *gtk.TreeIter) int {
+	if v, err := w.listStore.GetValue(it, colRow); err != nil {
+		return -1
+	} else if iv, err := v.GoValue(); err != nil {
+		return -1
+	} else if res, ok := iv.(int); ok {
+		return res
+	}
+	return -1
 }
 
 func (w *QuoteView) FirstRow() (*gtk.TreeIter, bool) {
@@ -126,7 +171,7 @@ func (w *QuoteView) UpdateRow(iter *gtk.TreeIter, v []interface{}) error {
 	}
 	colIds := make([]int, nc)
 	for idx := 0; idx < nc; idx++ {
-		colIds[idx] = idx
+		colIds[idx] = idx + colStart
 	}
 	if err := w.listStore.Set(iter, colIds, v); err != nil {
 		log.Error("Update quote row", err)

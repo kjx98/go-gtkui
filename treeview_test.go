@@ -25,5 +25,26 @@ func TestQuoteView(t *testing.T) {
 		time.Sleep(30 * time.Second)
 		gtk.MainQuit()
 	}()
+	if it, ok := qv.FirstRow(); !ok {
+		t.Error("can't got first row")
+	} else if idx := qv.RowId(it); idx != 0 {
+		t.Error("expect row 0, got", idx)
+	} else if !qv.NextRow(it) {
+		t.Error("can't go next row")
+	} else if idx = qv.RowId(it); idx != 1 {
+		t.Error("expect row 1, got", idx)
+	} else {
+		c := qv.RowColor(it)
+		t.Log("Color of Row", idx, "is", c)
+		qv.SetRowColor(it, ColorUp)
+		if idx = qv.RowId(it); idx != 1 {
+			t.Error("expect row 1, got", idx)
+		}
+		if c = qv.RowColor(it); c != ColorUp {
+			t.Error("Expect", ColorUp, ", BUT got", c)
+		}
+		t.Log("After SetRowColor Color of Row", idx, "is", c)
+	}
+	t.Log("FirstRow/NextRow works")
 	gtk.Main()
 }
